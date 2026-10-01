@@ -37,6 +37,8 @@ La imagen de Odoo tiene una fecha fija; PostgreSQL y Caddy siguen ramas mantenid
 
 Añade módulos Odoo 19 en `custom-addons/mi_modulo/` con su `__manifest__.py` y `__init__.py`. Las dependencias Python van en `requirements.txt`, con versiones fijadas. El Dockerfile utiliza un entorno virtual que también ve las dependencias oficiales de Odoo.
 
+Git ignora los módulos de `custom-addons/`. Permanecen en tu equipo y se incluyen en la imagen de producción al construirla; si despliegas desde otro equipo o servidor, copia allí esos módulos por separado.
+
 En producción los módulos se copian durante la construcción. Después de revisar y probar un cambio:
 
 ```sh

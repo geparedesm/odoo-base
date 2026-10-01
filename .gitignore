@@ -5,6 +5,7 @@ secrets/*
 !secrets/.gitkeep
 backups/*
 !backups/.gitkeep
+/custom-addons/*
 __pycache__/
 *.pyc
 .DS_Store
