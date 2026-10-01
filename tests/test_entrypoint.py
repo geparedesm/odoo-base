@@ -48,7 +48,7 @@ class StartupSecurityTests(unittest.TestCase):
 
     @patch.object(entrypoint.subprocess, 'run')
     def test_existing_unsecured_database_requires_review(self, run):
-        with self.assertRaisesRegex(RuntimeError, 'Revisa manualmente'):
+        with self.assertRaisesRegex(RuntimeError, 'Review it manually'):
             self.run_mode('bootstrap', exists=True)
         run.assert_not_called()
 

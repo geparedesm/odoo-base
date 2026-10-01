@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copia consistente con una breve parada de Odoo; no elimina backups anteriores.
+# Consistent backup with a brief Odoo stop; previous backups remain untouched.
 set -eu
 cd "$(dirname "$0")/.."
 umask 077
@@ -12,4 +12,4 @@ docker compose run --rm --no-deps -T --entrypoint tar odoo \
     -C /var/lib/odoo -czf - filestore > "$destination/filestore.tar.gz"
 cp .env "$destination/deployment.env"
 docker compose images > "$destination/images.txt"
-printf '%s\n' "Backup completo: $destination. Cópialo cifrado fuera del servidor."
+printf '%s\n' "Backup complete: $destination. Copy it off the server in encrypted form."

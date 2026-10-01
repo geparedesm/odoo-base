@@ -1,16 +1,16 @@
-# Odoo Community 19 para un servidor pequeño
+# Odoo Community 19 for a small server
 
-Odoo 19 Community, PostgreSQL 16 y Caddy con HTTPS automático. Base inicial para **2 vCPU, 4 GB de RAM y SSD**, con pocos usuarios concurrentes. Incluye la interfaz estándar de Community; Enterprise necesita licencia y addons adicionales. No incluye un tema externo que pueda afectar compatibilidad o rendimiento.
+Odoo 19 Community, PostgreSQL 16, and Caddy with automatic HTTPS. The starting configuration targets **2 vCPUs, 4 GB of RAM, and an SSD**, with a small number of concurrent users. It uses the standard Community interface. Enterprise requires a license and additional add-ons.
 
-No existe una versión universalmente «más rápida»: hay que medir con los módulos, datos y usuarios reales. Se elige una versión actual disponible en la imagen oficial, con dos workers HTTP, un proceso cron y websocket. En 2 GB puede ser necesario un solo worker y menos módulos; informes grandes e importaciones pueden agotar memoria. Para 1 GB no recomiendo esta configuración de producción.
+There is no universally fastest Odoo version: performance depends on your modules, data, and workload. This setup uses a pinned official Odoo image, two HTTP workers, one cron process, and a websocket worker. A 2 GB server may need one HTTP worker and fewer modules; large reports and imports can exhaust memory. A 1 GB server is not recommended for this production setup.
 
-## Primer arranque
+## First deployment
 
-Requisitos: Docker Engine con Compose v2.24 o posterior, un dominio con DNS A/AAAA apuntando al servidor y puertos TCP 80/443 accesibles. Solo publica esos puertos; restringe SSH por firewall. No abras 5432, 8069 ni 8072.
+Requirements: Docker Engine with Compose v2.24 or later, a domain whose DNS A/AAAA record points to the server, and reachable TCP ports 80 and 443. Publish only those ports. Restrict SSH with a firewall. Do not expose ports 5432, 8069, or 8072.
 
 ```sh
 sh scripts/setup.sh
-# Edita .env: ODOO_DOMAIN=erp.tudominio.com y ACME_EMAIL=tu@email.com
+# Edit .env: set ODOO_DOMAIN=erp.example.com and ACME_EMAIL=you@example.com.
 docker compose build --pull
 docker compose up -d db
 docker compose run --rm odoo bootstrap
@@ -18,43 +18,43 @@ docker compose up -d
 docker compose ps
 ```
 
-Abre `https://erp.tudominio.com`. Usuario inicial: `admin`. La contraseña aleatoria está en `secrets/odoo_admin_password`; consúltala localmente y guárdala en tu gestor de contraseñas. Cámbiala desde Odoo tras acceder. La clave maestra de bases de datos es distinta (`secrets/odoo_master_password`). El bootstrap evita publicar la contraseña predeterminada y no cambia credenciales si ya se completó.
+Open `https://erp.example.com`. The initial username is `admin`. Read its generated password locally from `secrets/odoo_admin_password`, store it in a password manager, and change it in Odoo after signing in. The database master password is separate (`secrets/odoo_master_password`). Bootstrap sets the administrator password before the site is exposed and does not reset it on later runs.
 
-`setup.sh` no sobrescribe secretos existentes. El bootstrap se ejecuta una sola vez sobre una base vacía. Si falla después de crear las tablas, el arranque queda bloqueado: revisa los logs y completa manualmente la inicialización. No borres volúmenes que contengan datos reales para resolverlo.
+`setup.sh` preserves existing secrets. Bootstrap runs once against an empty database. If it fails after creating tables, startup is blocked. Inspect the logs and finish initialization manually. Do not delete volumes containing real data to resolve the failure.
 
-## Seguridad y recursos
+## Security and resource limits
 
-- PostgreSQL está en una red interna, sin puertos publicados; Odoo usa un rol sin superusuario, creación de roles o bases.
-- Solo Caddy recibe tráfico público y gestiona certificados y redirección a HTTPS. Las rutas de gestión de bases están bloqueadas, con `list_db=False` y filtro de base fijo.
-- Odoo ejecuta como usuario no root, sin capacidades Linux, con raíz de solo lectura. Archivos de datos y sesiones persisten en un volumen. Las credenciales se escriben en un archivo privado en tmpfs, no en argumentos del proceso.
-- Límites de RAM: Odoo 2304 MiB, PostgreSQL 768 MiB y Caddy 128 MiB. Se deja margen al sistema en un servidor de 4 GB. Los límites por worker son distintos del límite total del contenedor; si todos consumen su máximo simultáneamente puede actuar el OOM killer.
-- Logs rotados, compresión HTTP, conexión websocket dedicada y un máximo de ocho conexiones SQL por proceso. Sin workers de desarrollo en producción.
-- Los secretos de Compose son archivos del host, **no una bóveda cifrada**. El directorio `secrets/` usa permiso 0700; sus archivos son legibles dentro del contenedor por Odoo. No los añadas a Git ni los copies en imágenes. El administrador del host y Docker puede leerlos.
+- PostgreSQL uses an internal network with no published port. Odoo connects through a role that cannot create roles or databases and is not a superuser.
+- Only Caddy accepts public traffic and handles certificates and HTTPS redirects. Database management routes are blocked; Odoo also uses `list_db=False` and a fixed database filter.
+- Odoo runs as a non-root user without Linux capabilities and with a read-only root filesystem. Data files and sessions persist in a volume. Credentials are written to a private file in tmpfs rather than passed as process arguments.
+- Memory limits: 2304 MiB for Odoo, 768 MiB for PostgreSQL, and 128 MiB for Caddy. This leaves some headroom on a 4 GB server. Per-worker memory limits are separate from the container limit; concurrent memory peaks can still trigger the OOM killer.
+- Logs are rotated. HTTP compression and dedicated websocket routing are enabled. Each Odoo process has a maximum of eight SQL connections.
+- Compose secrets are files on the host, **not an encrypted vault**. The `secrets/` directory has mode 0700; its files are readable by Odoo inside the container. Do not commit or bake them into images. Host and Docker administrators can read them.
 
-La imagen de Odoo tiene una fecha fija; PostgreSQL y Caddy siguen ramas mantenidas. Para despliegues reproducibles, fija las tres imágenes por digest en `.env` tras validarlas (`imagen@sha256:...`). Planifica actualizaciones y pruebas periódicas; fijar una imagen no aplica parches automáticamente. Regenerar archivos de secretos no rota usuarios ya creados en PostgreSQL/Odoo.
+The Odoo image uses a fixed release date; PostgreSQL and Caddy use maintained version branches. For fully reproducible deployments, pin all three images to tested digests in `.env` (`image@sha256:...`). Schedule updates and testing: pinning does not install security patches. Regenerating secret files does not rotate existing PostgreSQL or Odoo accounts.
 
-## Módulos personalizados
+## Custom add-ons
 
-Añade módulos Odoo 19 en `custom-addons/mi_modulo/` con su `__manifest__.py` y `__init__.py`. Las dependencias Python van en `requirements.txt`, con versiones fijadas. El Dockerfile utiliza un entorno virtual que también ve las dependencias oficiales de Odoo.
+Place Odoo 19 add-ons in `custom-addons/my_module/` with `__manifest__.py` and `__init__.py`. Put any Python dependencies in `requirements.txt` with exact versions. The Dockerfile creates a virtual environment that can also access Odoo's official dependencies.
 
-Git ignora los módulos de `custom-addons/`. Permanecen en tu equipo y se incluyen en la imagen de producción al construirla; si despliegas desde otro equipo o servidor, copia allí esos módulos por separado.
+Git ignores add-ons under `custom-addons/`. They remain on your machine and are copied into the production image when you build it. If you deploy from another machine, transfer your custom add-ons separately.
 
-En producción los módulos se copian durante la construcción. Después de revisar y probar un cambio:
+After reviewing and testing an add-on change, deploy it as follows:
 
 ```sh
 sh scripts/backup.sh
 docker compose build --pull odoo
 docker compose stop odoo
-# Primera instalación: sustituye -u por -i.
-docker compose run --rm odoo -u mi_modulo --stop-after-init --no-http --workers=0 --max-cron-threads=0
+# For a first installation, replace -u with -i.
+docker compose run --rm odoo -u my_module --stop-after-init --no-http --workers=0 --max-cron-threads=0
 docker compose up -d odoo
 ```
 
-Si falla la actualización, mantén Odoo detenido y revisa el error antes de arrancar. No actualices todos los módulos automáticamente al iniciar. Una versión mayor de Odoo requiere migración de base de datos.
+If the update fails, keep Odoo stopped and inspect the error before restarting. Do not update every add-on automatically at startup. Major Odoo upgrades require a database migration.
 
-### Desarrollo local aislado
+### Isolated local development
 
-No uses esta variante en el servidor de producción. El nombre de proyecto **odoo-dev** separa volúmenes y redes. El override monta los módulos locales, activa recarga, desactiva cron y expone HTTP únicamente en loopback. No inicia Caddy.
+Use this configuration on a development machine. The **odoo-dev** project name separates its volumes and networks from production. The override mounts local add-ons, enables reload, disables cron, and exposes HTTP only on loopback. It does not start Caddy.
 
 ```sh
 sh scripts/setup.sh
@@ -64,48 +64,48 @@ docker compose -p odoo-dev -f compose.yaml -f compose.dev.yaml run --rm odoo boo
 docker compose -p odoo-dev -f compose.yaml -f compose.dev.yaml up -d odoo
 ```
 
-Visita `http://localhost:8069`. La recarga de Python no instala módulos ni aplica cambios de esquema: utiliza `-i mi_modulo` o `-u mi_modulo` con los mismos flags de mantenimiento anteriores y con Odoo detenido. Para crear un esqueleto:
+Open `http://localhost:8069`. Python reload does not install add-ons or apply schema changes. With Odoo stopped, use the maintenance command above with `-i my_module` or `-u my_module`. To generate a new add-on skeleton:
 
 ```sh
 docker compose -p odoo-dev -f compose.yaml -f compose.dev.yaml run --rm \
-  -v "$PWD/custom-addons:/opt/custom-addons:rw" odoo scaffold mi_modulo /opt/custom-addons
+  -v "$PWD/custom-addons:/opt/custom-addons:rw" odoo scaffold my_module /opt/custom-addons
 ```
 
-En Linux el UID del contenedor debe tener permiso de escritura para el scaffold; ajusta el propietario del directorio para ese usuario. Evita `chmod 777`. En desarrollo el websocket se sirve por el puerto HTTP al usar cero workers.
+On Linux, the container UID needs write permission for scaffolding. Set ownership of the directory for that user; avoid `chmod 777`. In development mode with zero workers, websockets use the HTTP port.
 
-## Copias de seguridad y restauración
+## Backup and restore
 
 ```sh
 sh scripts/backup.sh
 ```
 
-El script detiene Odoo durante la copia para mantener coherencia entre PostgreSQL y el filestore, y vuelve a iniciarlo al terminar o fallar. Produce un dump PostgreSQL y un archivo de adjuntos; las sesiones no se restauran. Ejecuta durante una ventana de mantenimiento, configura periodicidad/retención externa y copia los resultados cifrados fuera del servidor. Un directorio incompleto tras un error no es un backup válido. Conserva también los secretos de forma cifrada y la revisión Git/imagen con los módulos que generaron la copia.
+The script stops Odoo briefly to keep PostgreSQL and the filestore consistent, then restarts it whether the copy succeeds or fails. It creates a PostgreSQL dump and an attachment archive; sessions are not restored. Run it during a maintenance window, set a schedule and external retention, and copy encrypted backups off the server. A directory left by a failed run is not a valid backup. Keep encrypted copies of the secrets and the Git revision/image plus the custom add-ons used to create the backup.
 
-Prueba la restauración en otro proyecto o servidor con la misma versión y módulos. Los siguientes comandos **reemplazan los datos de la base destino**; no los ejecutes sobre producción por accidente:
+Test restoration in another project or server with the same Odoo version and add-ons. The following commands **replace the target database's data**. Do not run them against production by mistake:
 
 ```sh
-# Configura primero el proyecto/host DESTINO y sus secretos.
+# Configure the TARGET project/host and its secrets first.
 docker compose up -d db
 docker compose stop odoo
 docker compose exec -T db dropdb -U postgres --if-exists --force odoo
 docker compose exec -T db createdb -U postgres -O odoo -T template0 odoo
 docker compose exec -T db psql -U postgres -d postgres -c 'REVOKE ALL ON DATABASE odoo FROM PUBLIC'
-docker compose exec -T db pg_restore -U postgres -d odoo --exit-on-error < backups/FECHA/database.dump
-# Usa un volumen odoo_data vacío en el destino, para no mezclar adjuntos viejos.
+docker compose exec -T db pg_restore -U postgres -d odoo --exit-on-error < backups/TIMESTAMP/database.dump
+# Use an empty odoo_data volume on the target to avoid mixing old attachments.
 docker compose run --rm --no-deps -T --entrypoint tar odoo \
-  -C /var/lib/odoo -xzf - < backups/FECHA/filestore.tar.gz
+  -C /var/lib/odoo -xzf - < backups/TIMESTAMP/filestore.tar.gz
 docker compose up -d
 ```
 
-Comprueba acceso, adjuntos, informes y permisos. Nunca ejecutes `docker compose down -v` sobre un despliegue con datos que quieras conservar.
+Check login, attachments, reports, and permissions. Never run `docker compose down -v` on a deployment whose data you need to keep.
 
-## Validación local
+## Local validation
 
-Comprobados: `docker compose config` para producción y desarrollo, sintaxis Python/shell y cinco pruebas de seguridad del arranque (`python3 -m unittest discover -s tests -v`). Las pruebas usan dobles de PostgreSQL/procesos; no sustituyen una prueba de integración. También se verificó el arranque real en desarrollo: creación del rol y base en un contenedor nuevo, endpoint de salud, página de login HTTP 200 y autenticación del administrador. PostgreSQL incorpora el script de inicialización en su imagen para evitar problemas al ejecutar archivos montados desde el host; su healthcheck comprueba la conexión real del usuario de Odoo. Antes de usar datos reales, verifica HTTPS, websocket, backup y restauración en el servidor destino.
+The production and development Compose configurations were parsed, Python and shell syntax were checked, and five startup security tests passed (`python3 -m unittest discover -s tests -v`). The tests use database and process mocks. A development integration check also confirmed role and database creation in a fresh container, the health endpoint, HTTP 200 on the login page, and administrator authentication. The PostgreSQL initialization script is baked into its image to avoid host mount execution problems; its healthcheck verifies a real connection as the Odoo user. Before using real data, test HTTPS, websockets, backup, and restore on the target server.
 
-## Fuentes
+## References
 
-- [Despliegue y cálculo de workers de Odoo](https://www.odoo.com/documentation/19.0/administration/on_premise/deploy.html).
-- [Imagen oficial Odoo](https://hub.docker.com/_/odoo) y [Dockerfile oficial 19](https://github.com/odoo/docker/blob/master/19.0/Dockerfile).
-- [Imagen oficial PostgreSQL](https://hub.docker.com/_/postgres).
-- [Proxy inverso Caddy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy).
+- [Odoo deployment and worker sizing](https://www.odoo.com/documentation/19.0/administration/on_premise/deploy.html).
+- [Official Odoo image](https://hub.docker.com/_/odoo) and [official Odoo 19 Dockerfile](https://github.com/odoo/docker/blob/master/19.0/Dockerfile).
+- [Official PostgreSQL image](https://hub.docker.com/_/postgres).
+- [Caddy reverse proxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy).

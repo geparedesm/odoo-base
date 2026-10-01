@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-# Rol de aplicación independiente: nunca superusuario ni creador de bases.
+# Dedicated application role: no superuser, database creation, or role creation.
 app_password="$(cat /run/secrets/odoo_db_password)"
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres \
     --set=app_password="$app_password" <<'SQL'

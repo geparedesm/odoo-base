@@ -90,8 +90,8 @@ services:
       odoo:
         condition: service_healthy
     environment:
-      ODOO_DOMAIN: ${ODOO_DOMAIN:?Configura ODOO_DOMAIN en .env}
-      ACME_EMAIL: ${ACME_EMAIL:?Configura ACME_EMAIL en .env}
+      ODOO_DOMAIN: ${ODOO_DOMAIN:?Set ODOO_DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env}
     ports:
       - "80:8080"
       - "443:8443"

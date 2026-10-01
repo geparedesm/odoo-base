@@ -12,7 +12,7 @@ import psycopg2
 def secret(name):
     value = Path('/run/secrets', name).read_text().strip()
     if len(value) < 24 or '\n' in value:
-        raise RuntimeError(f'{name}: se requiere un secreto de al menos 24 caracteres')
+        raise RuntimeError(f'{name}: secret must be at least 24 characters long')
     return value
 
 
@@ -57,10 +57,10 @@ def main():
 
     if mode == 'bootstrap':
         if ready:
-            print('Base ya inicializada; no se modifica la contraseña.')
+            print('Database already initialized; password left unchanged.')
             return
         if exists:
-            raise RuntimeError('Base existente sin marca de inicialización. Revisa manualmente antes de continuar.')
+            raise RuntimeError('Existing database has no initialization marker. Review it manually before continuing.')
         secret('odoo_admin_password')
         subprocess.run(odoo + ['-i', 'base', '--without-demo', '--stop-after-init',
                               '--no-http', '--workers=0', '--max-cron-threads=0'], check=True)
@@ -73,12 +73,12 @@ env.cr.commit()
 """, text=True, check=True)
         return
     if not ready:
-        raise RuntimeError('Ejecuta primero: docker compose run --rm odoo bootstrap')
+        raise RuntimeError('Run first: docker compose run --rm odoo bootstrap')
     if mode == 'serve':
         os.execvp(odoo[0], odoo + args)
     if mode == 'shell' or mode.startswith('-'):
         os.execvp(odoo[0], odoo + [mode] + args)
-    raise RuntimeError(f'Comando no admitido: {mode}')
+    raise RuntimeError(f'Unsupported command: {mode}')
 
 
 if __name__ == '__main__':

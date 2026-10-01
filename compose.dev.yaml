@@ -1,4 +1,4 @@
-# Usar con -p odoo-dev: volúmenes y red separados de producción.
+# Use with -p odoo-dev: separate volumes and network from production.
 services:
   odoo:
     command: [serve, --workers=0, --max-cron-threads=0, "--dev=reload,qweb,xml"]
