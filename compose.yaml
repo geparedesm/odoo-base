@@ -1,0 +1,130 @@
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    build:
+      context: ./docker/postgres
+      args:
+        POSTGRES_IMAGE: ${POSTGRES_IMAGE:-postgres:16-bookworm}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    secrets:
+      - postgres_password
+      - odoo_db_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - effective_cache_size=512MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=64MB
+      - -c
+      - max_connections=60
+      - -c
+      - password_encryption=scram-sha-256
+    shm_size: 128mb
+    mem_limit: 768m
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD-SHELL, "PGPASSWORD=$$(cat /run/secrets/odoo_db_password) psql -h 127.0.0.1 -U odoo -d odoo -v ON_ERROR_STOP=1 -c 'SELECT 1' >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [database]
+    logging: *logging
+
+  odoo:
+    build:
+      context: .
+      args:
+        ODOO_IMAGE: ${ODOO_IMAGE:-odoo:19.0-20260926}
+    restart: unless-stopped
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_WORKERS: ${APP_WORKERS:-2}
+      APP_MEMORY_SOFT: ${APP_MEMORY_SOFT:-536870912}
+      APP_MEMORY_HARD: ${APP_MEMORY_HARD:-671088640}
+    secrets:
+      - odoo_db_password
+      - odoo_master_password
+      - odoo_admin_password
+    volumes:
+      - odoo_data:/var/lib/odoo
+    read_only: true
+    tmpfs:
+      - /tmp:size=268435456,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${ODOO_MEMORY_LIMIT:-2304m}
+    pids_limit: 256
+    stop_grace_period: 60s
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8069/web/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 90s
+      retries: 5
+    networks: [database, frontend]
+    logging: *logging
+
+  proxy:
+    image: ${CADDY_IMAGE:-caddy:2-alpine}
+    restart: unless-stopped
+    depends_on:
+      odoo:
+        condition: service_healthy
+    environment:
+      ODOO_DOMAIN: ${ODOO_DOMAIN:?Configura ODOO_DOMAIN en .env}
+      ACME_EMAIL: ${ACME_EMAIL:?Configura ACME_EMAIL en .env}
+    ports:
+      - "80:8080"
+      - "443:8443"
+    volumes:
+      - ./config/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    read_only: true
+    tmpfs:
+      - /tmp:size=16777216,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    networks: [frontend]
+    logging: *logging
+
+networks:
+  database:
+    internal: true
+  frontend:
+
+volumes:
+  postgres_data:
+  odoo_data:
+  caddy_data:
+  caddy_config:
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password
+  odoo_db_password:
+    file: ./secrets/odoo_db_password
+  odoo_master_password:
+    file: ./secrets/odoo_master_password
+  odoo_admin_password:
+    file: ./secrets/odoo_admin_password

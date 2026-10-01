@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+secrets/*
+!secrets/.gitkeep
+backups/*
+!backups/.gitkeep
+__pycache__/
+*.pyc
+.DS_Store

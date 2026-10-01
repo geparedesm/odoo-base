@@ -1,0 +1,31 @@
+{
+    email {$ACME_EMAIL}
+    admin off
+    http_port 8080
+    https_port 8443
+    servers {
+        protocols h1 h2
+    }
+}
+
+{$ODOO_DOMAIN} {
+    encode zstd gzip
+    request_body {
+        max_size 32MB
+    }
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+    @database path /web/database /web/database/*
+    respond @database 404
+    @websocket path /websocket /websocket/*
+    reverse_proxy @websocket odoo:8072 {
+        header_up X-Forwarded-Host {host}
+    }
+    reverse_proxy odoo:8069 {
+        header_up X-Forwarded-Host {host}
+    }
+}

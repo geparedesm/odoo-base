@@ -1,0 +1,13 @@
+# Usar con -p odoo-dev: volúmenes y red separados de producción.
+services:
+  odoo:
+    command: [serve, --workers=0, --max-cron-threads=0, "--dev=reload,qweb,xml"]
+    environment:
+      APP_WORKERS: 0
+      ODOO_PROXY_MODE: "False"
+    ports:
+      - "127.0.0.1:8069:8069"
+    volumes:
+      - ./custom-addons:/opt/custom-addons:ro
+  proxy:
+    profiles: [production-proxy]

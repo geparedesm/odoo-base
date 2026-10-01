@@ -1,0 +1,11 @@
+*
+!docker/
+!docker/entrypoint.py
+!config/
+!config/odoo.conf
+!custom-addons/
+!custom-addons/**
+!requirements.txt
+**/__pycache__
+**/*.pyc
+**/.git
