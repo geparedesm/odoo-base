@@ -1,1 +1,2 @@
 # Pin exact versions of your custom add-ons' Python dependencies here.
+pypdf==6.19.0  # job_finder: CV import (Odoo itself keeps using PyPDF2 2.x)
