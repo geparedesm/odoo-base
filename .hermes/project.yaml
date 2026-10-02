@@ -1,0 +1,7 @@
+version: 1
+project: {name: odoo-base}
+toolchain: {profiles: [python]}
+commands:
+  build: "python -m compileall -q docker tests"
+  test: "python -m unittest discover -s tests -v"
+quality_gate: {build: true, tests: true, full_suite: true}
