@@ -1,0 +1,12 @@
+# Throwaway database for `ho-odoo-test` (test-only credentials; the service lives only while tests run).
+services:
+  postgres:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      POSTGRES_DB: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo"]
+      interval: 2s
+      retries: 30

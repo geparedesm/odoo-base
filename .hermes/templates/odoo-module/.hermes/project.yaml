@@ -1,0 +1,13 @@
+# hermes-orchestrator configuration of the {{name}} module (created from odoo-base's template).
+version: 1
+project: {name: "{{name}}"}
+toolchain: {profiles: [odoo]}
+commands:
+  build: "python -m compileall -q ."
+  test: "ho-odoo-test {{name}}"
+# Tests install the module into a real Odoo {{odoo_series}} with a throwaway PostgreSQL.
+test_environment:
+  compose_files: [.hermes/test-services.yaml]
+  services: [postgres]
+  startup_timeout_seconds: 180
+quality_gate: {build: true, tests: true, full_suite: true}

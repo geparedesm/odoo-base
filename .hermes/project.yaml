@@ -5,3 +5,12 @@ commands:
   build: "python -m compileall -q docker tests"
   test: "python -m unittest discover -s tests -v"
 quality_gate: {build: true, tests: true, full_suite: true}
+# Odoo modules created from the Dashboard (Projects > odoo-base > New module): each one is its own repository and
+# hermes-orchestrator project, scaffolded from .hermes/templates/odoo-module with its development rules.
+children:
+  path: custom-addons
+  template: .hermes/templates/odoo-module
+  label: module
+  commit_message: "[ADD] Scaffold {name} module"
+  variables: {odoo_series: "19.0", author: "Gabriel Paredes"}
+  github: {owner: geparedesm, repo_name: "odoo-{name}", private: true}
