@@ -40,6 +40,20 @@ tests/test_<feature>.py
 - Use ORM methods (`create`, `write`, `search`, `read_group`) in batches; never call `search` or `browse` inside a
   loop over records when one query can do it.
 
+## Odoo 19 specifics (checked against the Odoo 19 source)
+
+- Table constraints and indexes are model attributes, `models.Constraint`, `models.Index`, and `models.UniqueIndex`,
+  for example `_identity_card_uniq = models.Constraint("UNIQUE (identity_card)", "This identity card already exists.")`.
+  `_sql_constraints` is no longer supported: Odoo only logs a warning and creates nothing, so the rule silently does
+  not exist. Never use it.
+- List views use `<list>` (never `<tree>`). Conditional fields use `invisible="…"`, `readonly="…"`, and `required="…"`
+  with Python expressions; `attrs` and `states` were removed (Odoo refuses views that use them).
+- Record names come from `_compute_display_name` (there is no `name_get`).
+- Grouped reads use `_read_group` in backend code, or `formatted_read_group` for a formatted result; `read_group` is
+  deprecated since 19.0.
+- On `res.users`, groups are `group_ids` (not `groups_id`).
+- Translations in Python: `self.env._("Text")`.
+
 ## Security
 
 - Every new model gets lines in `security/ir.model.access.csv` (at least one group).
