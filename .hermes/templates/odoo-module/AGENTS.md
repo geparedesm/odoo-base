@@ -88,9 +88,11 @@ tests/test_<feature>.py
 
 ## Manifest and dependencies
 
-- Bump `version` in `__manifest__.py` whenever models, fields, or data change:
-  - `{{odoo_series}}.X.Y.Z`: Z for fixes, Y for features, X for breaking changes;
-  - write a migration script in `migrations/<version>/` when existing data must change.
+- Do not change `version` in `__manifest__.py` in feature or fix work: parallel changes that bump it always
+  conflict. Upgrading the module in Odoo reloads models, fields, views, and data without a new version; the version
+  (`{{odoo_series}}.X.Y.Z`: Z for fixes, Y for features, X for breaking changes) is bumped once per release.
+- Exception: when existing data must change, write a migration script in `migrations/<version>/` and bump `version`
+  to that version in the same change, and say so in the change description.
 - `depends` lists every Odoo module this one uses.
 - External Python packages go in `external_dependencies`. Tests run without network access, so a new package must
   also be added to the platform's Odoo toolchain (hermes-orchestrator `workers/versions.env`, `ODOO_EXTRA_PYTHON`):
