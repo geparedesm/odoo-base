@@ -109,3 +109,15 @@ The production and development Compose configurations were parsed, Python and sh
 - [Official Odoo image](https://hub.docker.com/_/odoo) and [official Odoo 19 Dockerfile](https://github.com/odoo/docker/blob/master/19.0/Dockerfile).
 - [Official PostgreSQL image](https://hub.docker.com/_/postgres).
 - [Caddy reverse proxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy).
+
+## Cloudflare Tunnel access
+
+When the existing Cloudflare Tunnel forwards to `http://localhost:8069`, retain
+the loopback port when recreating Odoo:
+
+```bash
+docker compose -p odoo -f compose.yaml -f compose.tunnel.yaml up -d --no-deps --no-build odoo
+```
+
+This keeps port 8069 available to the local tunnel without publishing it on a
+public interface. Use both Compose files for subsequent service updates.

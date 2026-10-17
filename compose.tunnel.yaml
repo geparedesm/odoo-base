@@ -1,0 +1,6 @@
+# Publish Odoo only on loopback for the existing Cloudflare Tunnel.
+# Use alongside compose.yaml when deploying this installation.
+services:
+  odoo:
+    ports:
+      - "127.0.0.1:8069:8069"
