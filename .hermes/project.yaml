@@ -14,3 +14,9 @@ children:
   commit_message: "[ADD] Scaffold {name} module"
   variables: {odoo_series: "19.0", author: "Gabriel Paredes"}
   github: {owner: geparedesm, repo_name: "odoo-{name}", private: true}
+
+# Headless UI design; only a secret reference is versioned.
+secrets:
+  - name: PEN_CLI_KEY
+    environment: local
+    delivery: file
