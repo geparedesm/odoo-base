@@ -86,6 +86,16 @@ tests/test_<feature>.py
   {{odoo_series}} with a throwaway database and fails when the module does not install, when no test ran, or when
   any test fails.
 
+## Lint and security (Quality Gate)
+
+- Both must pass before a change is done, like the tests. Their rules belong to the platform, not to this
+  repository:
+  - `ho-odoo-lint {{name}}`: ruff and pylint-odoo;
+  - `ho-odoo-security {{name}}`: bandit, an access rule for every model, no `auth="none"` route, and no
+    public route with `csrf=False`.
+- Fix a finding rather than silence it. When one is a false positive or a deliberate choice, silence only that line,
+  with the reason in a comment: `# noqa: <code>`, `# pylint: disable=<message>`, or `# nosec <test id>`.
+
 ## Manifest and dependencies
 
 - Do not change `version` in `__manifest__.py` in feature or fix work: parallel changes that bump it always
