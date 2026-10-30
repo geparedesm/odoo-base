@@ -5,9 +5,15 @@ toolchain: {profiles: [odoo]}
 commands:
   build: "python -m compileall -q ."
   test: "ho-odoo-test {{name}}"
+  # Quality Gate checks with the odoo toolchain's rules (ruff + pylint-odoo; bandit + access rules and routes).
+  lint: "ho-odoo-lint {{name}}"
+  security: "ho-odoo-security {{name}}"
 # Tests install the module into a real Odoo {{odoo_series}} with a throwaway PostgreSQL.
 test_environment:
   compose_files: [.hermes/test-services.yaml]
   services: [postgres]
   startup_timeout_seconds: 180
-quality_gate: {build: true, tests: true, full_suite: true}
+quality_gate: {build: true, tests: true, full_suite: true, lint: true, security_checks: true}
+# Access rules, groups and record rules, and web routes raise a change's risk to HIGH.
+verification:
+  sensitive_paths: ["security/*", "controllers/*"]
