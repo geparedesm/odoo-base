@@ -4,7 +4,11 @@ toolchain: {profiles: [python]}
 commands:
   build: "python -m compileall -q docker tests"
   test: "python -m unittest discover -s tests -v"
-quality_gate: {build: true, tests: true, full_suite: true}
+  # The python toolchain's pinned tools; tests load the entrypoint dynamically, so mypy checks docker/ only.
+  lint: "ruff check --no-cache docker tests"
+  typecheck: "mypy --no-incremental --cache-dir=/dev/null --ignore-missing-imports docker"
+  security: "bandit -q -ll -ii -r docker"
+quality_gate: {build: true, tests: true, full_suite: true, lint: true, typecheck: true, security_checks: true}
 # Odoo modules created from the Dashboard (Projects > odoo-base > New module): each one is its own repository and
 # hermes-orchestrator project, scaffolded from .hermes/templates/odoo-module with its development rules.
 children:

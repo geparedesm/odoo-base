@@ -1,12 +1,11 @@
 """Security checks for first start; no Docker or database needed."""
 import configparser
 import importlib.util
-from pathlib import Path
 import sys
 import types
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
-
 
 spec = importlib.util.spec_from_file_location(
     'entrypoint', Path(__file__).resolve().parents[1] / 'docker/entrypoint.py')
