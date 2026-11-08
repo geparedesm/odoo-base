@@ -1,10 +1,10 @@
 """Keep secrets out of arguments and refuse to serve an unsecured new database."""
 import configparser
 import os
-from pathlib import Path
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 import psycopg2
 
@@ -27,9 +27,10 @@ def main():
                      ('limit_memory_soft', 'APP_MEMORY_SOFT'),
                      ('limit_memory_hard', 'APP_MEMORY_HARD')]:
         options[key] = str(int(os.environ.get(env, options[key])))
-    with open('/tmp/odoo-runtime.conf', 'w') as output:
+    # The container's own /tmp, written under umask 077 by its only user: not a shared temp directory.
+    with open('/tmp/odoo-runtime.conf', 'w') as output:  # nosec B108
         config.write(output)
-    os.environ['ODOO_RC'] = '/tmp/odoo-runtime.conf'
+    os.environ['ODOO_RC'] = '/tmp/odoo-runtime.conf'  # nosec B108
     # Calling the Python script explicitly also applies our dependency venv.
     odoo = ['python3', '/usr/bin/odoo']
     mode, *args = sys.argv[1:] or ['serve']
